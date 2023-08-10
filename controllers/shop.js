@@ -104,16 +104,19 @@ exports.postOrder = async (req, res, next) => {
         return product;
       })
     );
+    await cart.setProducts(null);
     res.redirect("/orders");
   } catch (error) {
     console.log("🚀 ~ exports.postOrders=async ~ error:", error);
   }
 };
 
-exports.getOrders = (req, res, next) => {
+exports.getOrders = async (req, res, next) => {
+  const orders = await req.user.getOrders({ include: ["products"] });
   res.render("shop/orders", {
     path: "/orders",
     pageTitle: "Your Orders",
+    orders,
   });
 };
 
