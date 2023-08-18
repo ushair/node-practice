@@ -43,8 +43,7 @@ exports.getIndex = async (req, res, next) => {
 
 exports.getCart = async (req, res, next) => {
   try {
-    const cart = await req.user.getCart();
-    const products = await cart.getProducts();
+    const products = await req.user.getCart();
     res.render("shop/cart", {
       path: "/cart",
       pageTitle: "Your Cart",
@@ -58,24 +57,8 @@ exports.getCart = async (req, res, next) => {
 exports.postCart = async (req, res, next) => {
   try {
     const prodId = req.body.productId;
-    const cart = await req.user.getCart();
-    const products = await cart.getProducts({ where: { id: prodId } });
-    let product;
-    let newQuantity = 1;
-    if (products.length > 0) {
-      product = products[0];
-    }
-    if (product) {
-      const oldQuantity = product.cartItem.quantity;
-      newQuantity = oldQuantity + 1;
-      await cart.addProduct(product, {
-        through: { quantity: newQuantity },
-      });
-    }
-    const fetchedProduct = await Product.findByPk(prodId);
-    await cart.addProduct(fetchedProduct, {
-      through: { quantity: newQuantity },
-    });
+    const product = await Product.findById(prodId);
+    await req.user.addToCart(product);
     res.redirect("/cart");
   } catch (error) {
     console.log(error);
@@ -85,9 +68,7 @@ exports.postCart = async (req, res, next) => {
 exports.postCartDeleteProduct = async (req, res, next) => {
   try {
     const prodId = req.body.productId;
-    const cart = await req.user.getCart();
-    const products = await cart.getProducts({ where: { id: prodId } });
-    await products[0].cartItem.destroy();
+    await req.user.deleteItemFromCart(prodId);
     res.redirect("/cart");
   } catch (error) {
     console.log("🚀 ~ exports.postCartDeleteProduct ~ error:", error);
@@ -96,16 +77,7 @@ exports.postCartDeleteProduct = async (req, res, next) => {
 
 exports.postOrder = async (req, res, next) => {
   try {
-    const cart = await req.user.getCart();
-    const products = await cart.getProducts();
-    const order = await req.user.createOrder();
-    await order.addProducts(
-      products.map((product) => {
-        product.orderItem = { quantity: product.cartItem.quantity };
-        return product;
-      })
-    );
-    await cart.setProducts(null);
+    await req.user.addOrder();
     res.redirect("/orders");
   } catch (error) {
     console.log("🚀 ~ exports.postOrders=async ~ error:", error);
