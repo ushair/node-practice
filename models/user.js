@@ -73,7 +73,15 @@ class User {
 
   async addOrder() {
     const db = getDb();
-    await db.collection("orders").insertOne(this.cart);
+    const cartProducts = await this.getCart();
+    const order = {
+      items: cartProducts,
+      user: {
+        _id: new mongodb.ObjectId(this._id),
+        name: this.name,
+      },
+    };
+    await db.collection("orders").insertOne(order);
     return await db
       .collection("users")
       .updateOne(
@@ -81,6 +89,15 @@ class User {
         { $set: { cart: { items: [] } } }
       );
   }
+
+  async getOrders() {
+    const db = getDb();
+    return await db
+      .collection("orders")
+      .find({ "user._id": new mongodb.ObjectId(this._id) })
+      .toArray();
+  }
+
   static async findById(userId) {
     const db = getDb();
     return await db
