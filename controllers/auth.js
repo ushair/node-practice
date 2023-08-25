@@ -1,6 +1,12 @@
 const bcrypt = require("bcryptjs");
+const emailjs = require("@emailjs/nodejs");
 
 const User = require("../models/user");
+
+emailjs.init({
+  publicKey: "7H27yf9ZXFWwvau6c",
+  privateKey: "mBiOQt2DcdNcrNN69mVjy",
+});
 
 exports.getLogin = async (req, res, next) => {
   res.render("auth/login", {
@@ -69,6 +75,21 @@ exports.postSignup = async (req, res, next) => {
       cart: { item: [] },
     });
     await user.save();
+
+    // Sending welcome email using emailjs
+    const emailContent = {
+      from: "shop-email@shop.com",
+      to: email,
+      subject: "Welcome to Our Website!",
+      text: "Thank you for signing up!",
+    };
+
+    const emailResponse = await emailjs.send(
+      "service_3txf7fc",
+      "template_276lfmq",
+      emailContent
+    );
+    console.log("Email sent:", emailResponse);
     res.redirect("/login");
   } catch (error) {
     console.log("🚀 ~ exports.postSignup= ~ error:", error);
