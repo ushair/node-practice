@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const emailjs = require("@emailjs/nodejs");
+const crypto = require("crypto");
 
 const User = require("../models/user");
 
@@ -81,7 +82,7 @@ exports.postSignup = async (req, res, next) => {
       from: "shop-email@shop.com",
       to: email,
       subject: "Welcome to Our Website!",
-      text: "Thank you for signing up!",
+      html: "<h1>Thank you for signing up!<h1>",
     };
 
     const emailResponse = await emailjs.send(
@@ -93,5 +94,94 @@ exports.postSignup = async (req, res, next) => {
     res.redirect("/login");
   } catch (error) {
     console.log("🚀 ~ exports.postSignup= ~ error:", error);
+  }
+};
+
+exports.getReset = (req, res, next) => {
+  res.render("auth/reset", {
+    path: "/reset",
+    pageTitle: "Reset Password",
+    errorMessage: req.flash("error"),
+  });
+};
+
+exports.postReset = (req, res, next) => {
+  crypto.randomBytes(32, async (err, buffer) => {
+    try {
+      if (err) {
+        console.log(err);
+        return res.redirect("/reset");
+      }
+      const token = buffer.toString("hex");
+      const user = await User.findOne({ email: req.body.email });
+      if (!user) {
+        req.flash("error", "No account found with that email.");
+        return res.redirect("/reset");
+      }
+      user.resetToken = token;
+      user.resetTokenExpiration = Date.now() + 3600000;
+      await user.save();
+      const emailContent = {
+        from: "shop-email@shop.com",
+        to: req.body.email,
+        subject: "Password Reset",
+        html: `
+        <p>You requested a password reset</p>
+        <p>Click this <a href='http://localhost:3000/reset/${token}'>link to set a new password</p>
+        `,
+      };
+
+      const emailResponse = await emailjs.send(
+        "service_3txf7fc",
+        "template_276lfmq",
+        emailContent
+      );
+      console.log("Reset Email sent:", emailResponse);
+      res.redirect("/");
+    } catch (err) {
+      console.log("🚀 ~ .postReset ~ err:", err);
+    }
+  });
+};
+
+exports.getNewPassword = async (req, res, next) => {
+  try {
+    const token = req.params.token;
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiration: { $gt: Date.now() },
+    });
+    res.render("auth/new-password", {
+      path: "/new-password",
+      pageTitle: "New Password",
+      errorMessage: req.flash("error"),
+      userId: user._id.toString(),
+      passwordToken: token,
+    });
+  } catch (error) {
+    console.log("🚀 ~ exports.getNewPassword= ~ error:", error);
+  }
+};
+
+exports.postNewPassword = async (req, res, next) => {
+  try {
+    const newPassword = req.body.password;
+    const userId = req.body.userId;
+    const passwordToken = req.body.passwordToken;
+
+    const user = await User.findOne({
+      resetToken: passwordToken,
+      resetTokenExpiration: { $gt: Date.now() },
+      _id: userId,
+    });
+    console.log("🚀 ~ exports.postNewPassword= ~ user:", user);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.resetToken = undefined;
+    user.resetTokenExpiration = undefined;
+    await user.save();
+    res.redirect("/login");
+  } catch (error) {
+    console.log("🚀 ~ postNewPassword error:", error);
   }
 };
