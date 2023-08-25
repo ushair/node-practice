@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const csrf = require("csurf");
+const flash = require("connect-flash");
 const mongodbStore = require("connect-mongodb-session")(session);
 
 const errorController = require("./controllers/error");
@@ -36,6 +37,7 @@ app.use(
   })
 );
 app.use(csrfProtection);
+app.use(flash());
 
 app.use(async (req, res, next) => {
   try {
