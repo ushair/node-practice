@@ -4,7 +4,6 @@ const Order = require("../models/order");
 exports.getProducts = async (req, res, next) => {
   try {
     const products = await Product.find();
-    console.log("🚀 ~ exports.getProducts= ~ products:", products);
     res.render("shop/product-list", {
       prods: products,
       pageTitle: "All Products",
