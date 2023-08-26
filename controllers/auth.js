@@ -35,7 +35,6 @@ exports.postLogin = async (req, res, next) => {
       return res.redirect("/login");
     }
     const doMatch = await bcrypt.compare(password, user.password);
-    console.log("🚀 ~ exports.postLogin= ~ doMatch:", doMatch);
     if (doMatch) {
       req.session.isLoggedIn = true;
       req.session.user = user;
@@ -174,7 +173,6 @@ exports.postNewPassword = async (req, res, next) => {
       resetTokenExpiration: { $gt: Date.now() },
       _id: userId,
     });
-    console.log("🚀 ~ exports.postNewPassword= ~ user:", user);
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.resetToken = undefined;
