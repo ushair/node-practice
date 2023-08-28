@@ -1,9 +1,12 @@
 const Product = require("../models/product");
 const Order = require("../models/order");
 const path = require("path");
+const stripe = require("stripe")(
+  "sk_test_51Nk8zVSCtF8V4hyauJYMsfbqtokrqf6puSr8TFlZ8ks15Nkp1x3KAPimwoEyY50qtWyO4UvPE5ffvUdoyYziYk5t00AxIdeQe9"
+);
+
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
-const { totalmem } = require("os");
 
 const ITEMS_PER_PAGE = 2;
 
@@ -121,11 +124,29 @@ exports.getCartCheckout = async (req, res, next) => {
     products.forEach((p) => {
       totalSum += p.quantity * p.productId.price;
     });
+    const session = await stripe.checkout.sessions.create({
+      line_items: products.map((p) => ({
+        price_data: {
+          unit_amount: p.productId.price * 100, // amount in cents
+          currency: "inr",
+          product_data: {
+            name: p.productId.title,
+            description: p.productId.description,
+          },
+        },
+        quantity: p.quantity,
+      })),
+      mode: "payment",
+      success_url: `${req.protocol}://${req.get("host")}/checkout/success`,
+      cancel_url: `${req.protocol}://${req.get("host")}/checkout/cancel`,
+    });
+
     res.render("shop/checkout", {
       path: "/checkout",
       pageTitle: "Checkout",
       products: products,
       totalSum: totalSum,
+      sessionId: session.id,
     });
   } catch (err) {
     const error = new Error(err);
@@ -134,6 +155,31 @@ exports.getCartCheckout = async (req, res, next) => {
   }
 };
 
+exports.getCheckoutSuccess = async (req, res, next) => {
+  try {
+    const user = await req.user.populate("cart.items.productId");
+    const products = user.cart.items.map((i) => {
+      return {
+        quantity: i.quantity,
+        product: { ...i.productId._doc },
+      };
+    });
+    const order = new Order({
+      user: {
+        email: req.user.email,
+        userId: req.user,
+      },
+      products: products,
+    });
+    await order.save();
+    await req.user.clearCart();
+    res.redirect("/orders");
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  }
+};
 exports.postOrder = async (req, res, next) => {
   try {
     const user = await req.user.populate("cart.items.productId");
