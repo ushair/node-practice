@@ -72,7 +72,6 @@ exports.postLogin = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.log("🚀 ~ exports.postLogin= ~ error:", error);
     res.redirect("/login");
   }
 };
@@ -119,10 +118,11 @@ exports.postSignup = async (req, res, next) => {
       "template_276lfmq",
       emailContent
     );
-    console.log("Email sent:", emailResponse);
     res.redirect("/login");
-  } catch (error) {
-    console.log("🚀 ~ exports.postSignup= ~ error:", error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -138,7 +138,6 @@ exports.postReset = (req, res, next) => {
   crypto.randomBytes(32, async (err, buffer) => {
     try {
       if (err) {
-        console.log(err);
         return res.redirect("/reset");
       }
       const token = buffer.toString("hex");
@@ -165,10 +164,11 @@ exports.postReset = (req, res, next) => {
         "template_276lfmq",
         emailContent
       );
-      console.log("Reset Email sent:", emailResponse);
       res.redirect("/");
     } catch (err) {
-      console.log("🚀 ~ .postReset ~ err:", err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     }
   });
 };
@@ -187,8 +187,10 @@ exports.getNewPassword = async (req, res, next) => {
       userId: user._id.toString(),
       passwordToken: token,
     });
-  } catch (error) {
-    console.log("🚀 ~ exports.getNewPassword= ~ error:", error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -209,7 +211,9 @@ exports.postNewPassword = async (req, res, next) => {
     user.resetTokenExpiration = undefined;
     await user.save();
     res.redirect("/login");
-  } catch (error) {
-    console.log("🚀 ~ postNewPassword error:", error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
