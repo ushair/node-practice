@@ -113,6 +113,27 @@ exports.postCartDeleteProduct = async (req, res, next) => {
   }
 };
 
+exports.getCartCheckout = async (req, res, next) => {
+  try {
+    const user = await req.user.populate("cart.items.productId");
+    const products = user.cart.items;
+    let totalSum = 0;
+    products.forEach((p) => {
+      totalSum += p.quantity * p.productId.price;
+    });
+    res.render("shop/checkout", {
+      path: "/checkout",
+      pageTitle: "Checkout",
+      products: products,
+      totalSum: totalSum,
+    });
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  }
+};
+
 exports.postOrder = async (req, res, next) => {
   try {
     const user = await req.user.populate("cart.items.productId");
