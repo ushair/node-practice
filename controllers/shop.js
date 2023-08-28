@@ -10,7 +10,9 @@ exports.getProducts = async (req, res, next) => {
       path: "/products",
     });
   } catch (err) {
-    console.log(err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -24,7 +26,9 @@ exports.getProduct = async (req, res, next) => {
       path: "/products",
     });
   } catch (err) {
-    console.log(err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -37,7 +41,9 @@ exports.getIndex = async (req, res, next) => {
       path: "/",
     });
   } catch (err) {
-    console.log(err);
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -49,8 +55,10 @@ exports.getCart = async (req, res, next) => {
       pageTitle: "Your Cart",
       products: user.cart.items,
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -60,8 +68,10 @@ exports.postCart = async (req, res, next) => {
     const product = await Product.findById(prodId);
     await req.user.addToCart(product);
     res.redirect("/cart");
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -70,8 +80,10 @@ exports.postCartDeleteProduct = async (req, res, next) => {
     const prodId = req.body.productId;
     await req.user.removeFromCart(prodId);
     res.redirect("/cart");
-  } catch (error) {
-    console.log("🚀 ~ exports.postCartDeleteProduct ~ error:", error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
@@ -94,8 +106,10 @@ exports.postOrder = async (req, res, next) => {
     await order.save();
     await req.user.clearCart();
     res.redirect("/orders");
-  } catch (error) {
-    console.log("🚀 ~ exports.postOrders=async ~ error:", error);
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
 };
 
